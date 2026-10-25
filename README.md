@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Self-Healing Data Pipeline Agent
 
 An initial, local-first starter project for monitoring ETL pipeline runs, diagnosing common failures, recommending safe recovery actions, and recording approval/audit events.
@@ -84,3 +85,7 @@ Copy `.env.example` to `.env` only when you begin Azure integration. Never commi
 ## License
 
 MIT License. See `LICENSE`.
+=======
+# self-healing-data-pipeline-agent
+AI-powered data pipeline monitoring, failure diagnosis, and safe recovery using Python, PySpark, Azure Data Factory, Databricks, and LangGraph.
+>>>>>>> 140f0b9f9bd905a1f7d9fac6cd4e871058c2fe0e
