@@ -1,6 +1,6 @@
-# Self-Healing Data Pipeline Agent
+# DataPipelineIntelligence
 
-A Python and Streamlit project for monitoring data pipeline runs, diagnosing common failures, and recording operator review decisions. It supports a local demo mode, Databricks Free Edition configuration, and Azure Databricks with optional Azure Data Factory monitoring.
+An AI-assisted data pipeline monitoring and reliability platform built with Python and Streamlit. DataPipelineIntelligence helps teams inspect pipeline runs, diagnose common failures, and record operator review decisions. It supports a local demo mode, Databricks Free Edition configuration, and Azure Databricks with optional Azure Data Factory monitoring.
 
 The current implementation is **read-only**: it can retrieve run metadata, display likely causes and recommended next steps, and record a review in an audit log. It does **not** restart jobs or repair pipelines automatically.
 
@@ -40,8 +40,8 @@ flowchart TD
 Open PowerShell and run:
 
 ```powershell
-git clone https://github.com/swapniltake1/self-healing-data-pipeline-agent.git
-cd self-healing-data-pipeline-agent
+git clone https://github.com/swapniltake1/DataPipelineIntelligence.git
+cd DataPipelineIntelligence
 
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
