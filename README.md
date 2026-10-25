@@ -1,35 +1,24 @@
-<<<<<<< HEAD
 # Self-Healing Data Pipeline Agent
 
-An initial, local-first starter project for monitoring ETL pipeline runs, diagnosing common failures, recommending safe recovery actions, and recording approval/audit events.
+A Python project for investigating failed data pipeline runs and deciding what to do next. The first version uses sample run data and simple rules to identify common problems, such as schema changes, failed data-quality checks, and timeouts.
 
-## MVP capabilities
+The goal is to build this into a tool that can monitor Azure Data Factory and Databricks jobs, explain failures, and help an operator recover a pipeline safely.
 
-- Demo pipeline run dashboard with failed, delayed, and successful runs.
-- Rule-based root-cause hints for schema mismatch, data-quality failures, timeout, and transient errors.
-- Human approval gate before a retry is requested.
-- Append-only local JSONL audit log.
-- Streamlit UI using synthetic demo data.
-- Clear integration points for Azure Data Factory, Azure Databricks, PySpark, and LangGraph.
+## What works now
 
-> **Safety note:** The included retry action is a simulation only. It does not call Azure or restart real jobs. Keep production recovery behind authentication, least-privilege identities, idempotency checks, approval policies, and auditable controls.
+- Streamlit dashboard showing sample successful, failed, and delayed runs
+- Basic failure classification and troubleshooting suggestions
+- Approval check before a retry can be recorded
+- Local JSONL audit log for operator decisions
+- Unit tests for diagnosis and retry rules
 
-## Architecture
+The current version uses synthetic data. It does not connect to Azure or restart real jobs. Diagnosis is rule-based; LangGraph and Azure integrations are planned work.
 
-```mermaid
-flowchart TD
-    A[Azure Data Factory / Databricks] --> B[Run Status + Logs]
-    B --> C[Failure Classifier]
-    C --> D[LangGraph Orchestrator - planned]
-    D --> E[Root Cause + Recovery Recommendation]
-    E --> F{Human Approval}
-    F -->|Approved| G[Retry Adapter - simulated in MVP]
-    F -->|Rejected| H[Record rejection]
-    G --> I[Audit Log]
-    H --> I
-```
+## Run locally
 
-## Quick start (Windows PowerShell)
+Requires Python 3.10 or newer.
+
+On Windows PowerShell, open this folder and run:
 
 ```powershell
 py -m venv .venv
@@ -39,53 +28,51 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-If PowerShell blocks activation, run `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass` in that terminal, then activate again.
+If PowerShell prevents virtual-environment activation, run this in the same terminal and try again:
 
-## Project structure
-
-```text
-self-healing-data-pipeline-agent/
-├── app.py
-├── requirements.txt
-├── .env.example
-├── .gitignore
-├── src/
-│   ├── __init__.py
-│   ├── diagnosis.py
-│   ├── audit.py
-│   └── recovery.py
-├── tests/
-│   └── test_diagnosis.py
-└── data/
-    └── sample_runs.json
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 ```
 
-## Current MVP flow
+## Try it out
 
-1. Select a synthetic pipeline run.
-2. Review the classifier's likely cause and suggested action.
-3. Enter an operator name and approve or reject the simulated retry.
-4. The decision is appended to `logs/audit.jsonl`.
+1. Open the Streamlit page in your browser.
+2. Select a pipeline run from the list.
+3. Read the error details and suggested next step.
+4. Enter an operator name and review the retry option.
+5. Record the decision and check the audit history.
 
-The diagnosis is heuristic-based in this first commit; it is not an LLM-generated or production-grade diagnosis.
+Only transient failures are considered retry candidates, and the retry is simulated. Schema and data-quality failures need investigation before a rerun.
 
-## Next milestones
+## Project layout
 
-1. Add LangGraph nodes for log normalization, diagnosis, policy validation, approval, and action planning.
-2. Integrate Azure Data Factory monitoring APIs using Microsoft Entra ID / managed identity.
-3. Retrieve Databricks job run state and bounded, redacted error logs.
-4. Add data-quality checks and schema-drift comparison using PySpark.
-5. Add authentication, role-based approvals, retry limits, idempotency controls, and automated tests.
-6. Add deployment configuration only after secrets and identity are configured securely.
+```text
+app.py                  Streamlit dashboard
+src/diagnosis.py        Failure classification rules
+src/recovery.py         Retry policy and simulated action
+src/audit.py            Local audit logging
+data/sample_runs.json   Example pipeline runs
+tests/test_diagnosis.py Unit tests
+```
 
-## Configuration
+## Run the tests
 
-Copy `.env.example` to `.env` only when you begin Azure integration. Never commit credentials, tokens, connection strings, or real production logs.
+```powershell
+python -m pytest
+```
+
+## Planned work
+
+- Use LangGraph to coordinate log parsing, diagnosis, policy checks, and recovery recommendations.
+- Read pipeline run status from Azure Data Factory.
+- Collect Databricks job status and relevant error details.
+- Add PySpark checks for schema drift and data quality.
+- Add authentication, role-based approvals, retry limits, and safeguards before any real recovery action.
+
+## Configuration and security
+
+An example environment file is included for future Azure settings. Do not commit credentials, access tokens, connection strings, or production logs. Any real retry integration should use least-privilege access, verify that a rerun is safe, and retain an audit trail.
 
 ## License
 
-MIT License. See `LICENSE`.
-=======
-# self-healing-data-pipeline-agent
-AI-powered data pipeline monitoring, failure diagnosis, and safe recovery using Python, PySpark, Azure Data Factory, Databricks, and LangGraph.
->>>>>>> 140f0b9f9bd905a1f7d9fac6cd4e871058c2fe0e
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
