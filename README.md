@@ -1,51 +1,84 @@
 # Self-Healing Data Pipeline Agent
 
-A local-first Python dashboard for monitoring Databricks job runs, classifying common failures, recommending safe next steps, and recording human review decisions. The project supports a demo mode, a Databricks Free Edition configuration, and a planned Azure environment.
+A Python and Streamlit project for monitoring data pipeline runs, diagnosing common failures, and recording operator review decisions. It supports a local demo mode, Databricks Free Edition configuration, and Azure Databricks with optional Azure Data Factory monitoring.
 
-## Current implementation
+The current implementation is **read-only**: it can retrieve run metadata, display likely causes and recommended next steps, and record a review in an audit log. It does **not** restart jobs or repair pipelines automatically.
 
-- Streamlit dashboard with sample/demo and live Databricks Jobs API monitoring.
-- Separate environment settings for Databricks Free Edition and Azure Databricks.
-- Optional Azure Data Factory pipeline-run monitoring through Azure Resource Manager.
-- Rule-based failure diagnosis, with an optional LangGraph workflow wrapper.
-- JSON Lines audit history for human review.
-- Sample PySpark ETL and data-quality job.
-- Live recovery is intentionally not implemented in the dashboard yet. The app is read-first and records review decisions only.
+## Features
+
+- **Demo mode:** view synthetic runs from `data/sample_runs.json` without cloud credentials.
+- **Databricks monitoring:** retrieve recent job-run metadata through the Databricks Jobs API.
+- **Azure Data Factory monitoring:** optionally retrieve recent pipeline runs through the Azure Resource Manager API.
+- **Failure diagnosis:** rule-based diagnosis with a LangGraph workflow wrapper.
+- **Human review:** record the operator name and whether the diagnosis was reviewed.
+- **Audit trail:** append review events as JSON Lines to a configurable local file.
+- **Sample ETL:** `jobs/sample_etl.py` demonstrates a PySpark ETL/data-quality job.
+- **Environment-based configuration:** select `demo`, `free`, or `azure` through a local `.env` file.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-    A[Databricks Free Edition] --> C[Databricks Jobs API connector]
-    B[Azure Databricks] --> C
-    D[Azure Data Factory] --> E[ARM pipeline runs API]
-    C --> F[Streamlit run monitor]
-    E --> F
-    F --> G[Diagnosis workflow]
-    G --> H[Human review]
-    H --> I[JSONL audit log]
+    A[Sample run data] --> D[Streamlit dashboard]
+    B[Databricks Jobs API] --> D
+    C[Azure Data Factory ARM API] --> D
+    D --> E[Failure diagnosis]
+    E --> F[Operator review]
+    F --> G[JSONL audit log]
 ```
+
+## Requirements
+
+- Python 3.11 or 3.12 recommended
+- Git
+- For live Databricks monitoring: a workspace URL and supported API credentials
+- For Azure Data Factory monitoring: an Azure subscription, resource group, factory name, and an identity permitted to read pipeline runs
+- Azure CLI for the recommended local Azure authentication flow
 
 ## Windows setup
 
-Use Python 3.11 or 3.12.
+Open PowerShell and run:
 
 ```powershell
 git clone https://github.com/swapniltake1/self-healing-data-pipeline-agent.git
 cd self-healing-data-pipeline-agent
+
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
+
 python -m pip install --upgrade pip
 pip install -r requirements.txt
+
 Copy-Item .env.example .env
-streamlit run app_connected.py
+streamlit run app.py
 ```
 
-If PowerShell blocks activation, run `.\.venv\Scripts\python.exe -m pip install -r requirements.txt` and `.\.venv\Scripts\python.exe -m streamlit run app_connected.py`.
+If PowerShell blocks virtual-environment activation, use the environment's executables directly:
 
-## Configure Databricks Free Edition now
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m streamlit run app.py
+```
 
-Edit the local `.env` file:
+Open the local URL printed by Streamlit in your browser.
+
+## Configure the application
+
+The application reads configuration from `.env` at the repository root. Copy `.env.example` to `.env`, then set the appropriate values. After changing configuration, restart Streamlit.
+
+### 1. Demo mode
+
+Use demo mode to explore the dashboard without cloud credentials:
+
+```dotenv
+APP_MODE=demo
+```
+
+Demo mode loads synthetic data from `data/sample_runs.json`. It does not connect to Databricks or Azure.
+
+### 2. Databricks Free Edition
+
+Set the mode and your workspace credentials in the local `.env` file:
 
 ```dotenv
 APP_MODE=free
@@ -53,11 +86,13 @@ DATABRICKS_FREE_HOST=https://YOUR-WORKSPACE-URL
 DATABRICKS_FREE_TOKEN=YOUR_TOKEN
 ```
 
-Use the workspace URL from your browser. Create a token only if the Free Edition workspace exposes and supports the relevant token/authentication option. Keep the token local; never commit `.env`. The app reads Jobs API 2.2 run metadata. API availability and permissions can vary by workspace/edition; if the endpoint is unsupported or access is denied, the app will show the API error.
+Use your actual workspace URL. Generate a token only if your workspace and edition expose and support the authentication method required by the API. The connector calls the Databricks Jobs API 2.2 to retrieve recent run metadata.
 
-## Enable Azure next month
+**Free Edition compatibility is not guaranteed.** API access, token support, permissions, and available job features can vary. If a request fails, the dashboard displays the API error; confirm the endpoint and authentication options supported by your workspace.
 
-When Azure Databricks is ready, update `.env`:
+### 3. Azure Databricks and Azure Data Factory
+
+For Azure Databricks, set:
 
 ```dotenv
 APP_MODE=azure
@@ -65,39 +100,85 @@ AZURE_DATABRICKS_HOST=https://YOUR-WORKSPACE.azuredatabricks.net
 AZURE_DATABRICKS_TOKEN=YOUR_AZURE_DATABRICKS_TOKEN
 ```
 
-To also monitor Azure Data Factory, add:
+To include Azure Data Factory pipeline runs, also set:
 
 ```dotenv
 AZURE_SUBSCRIPTION_ID=YOUR_SUBSCRIPTION_ID
 AZURE_RESOURCE_GROUP=YOUR_RESOURCE_GROUP
 AZURE_DATA_FACTORY_NAME=YOUR_FACTORY_NAME
+AZURE_MANAGEMENT_API_VERSION=2018-06-01
 ```
 
-For Data Factory, the recommended local authentication path is Azure CLI. Install Azure CLI and sign in with `az login`; the connector uses Azure Identity to request an ARM token. `AZURE_ACCESS_TOKEN` is optional for short-lived local testing only and should not be committed. The signed-in identity needs permission to read pipeline runs in the Data Factory resource.
+The recommended local authentication method for Data Factory is Azure CLI:
 
-After editing `.env`, restart Streamlit. Choose exactly one `APP_MODE`: `demo`, `free`, or `azure`. Azure mode can show both Azure Databricks runs and ADF runs if the ADF settings are present.
+```powershell
+az login
+```
+
+The connector uses Azure Identity to request an Azure Resource Manager token. The signed-in identity must have permission to read pipeline runs for the configured factory. `AZURE_ACCESS_TOKEN` is an optional override for short-lived testing; avoid storing long-lived credentials in files.
+
+In `azure` mode, the app monitors Azure Databricks and also queries Azure Data Factory when all three ADF settings (subscription, resource group, and factory name) are configured.
+
+### Configuration reference
+
+| Variable | Purpose |
+|---|---|
+| `APP_MODE` | `demo`, `free`, or `azure`; defaults to `demo` |
+| `DATABRICKS_FREE_HOST` | Databricks Free Edition workspace URL |
+| `DATABRICKS_FREE_TOKEN` | Token for the Free Edition workspace, if supported |
+| `AZURE_DATABRICKS_HOST` | Azure Databricks workspace URL |
+| `AZURE_DATABRICKS_TOKEN` | Azure Databricks API token |
+| `DATABRICKS_HOST`, `DATABRICKS_TOKEN` | Optional generic fallback credentials |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription containing the Data Factory |
+| `AZURE_RESOURCE_GROUP` | Resource group containing the Data Factory |
+| `AZURE_DATA_FACTORY_NAME` | Data Factory resource name |
+| `AZURE_ACCESS_TOKEN` | Optional Azure ARM bearer-token override |
+| `AZURE_MANAGEMENT_API_VERSION` | ARM API version; defaults to `2018-06-01` |
+| `REQUEST_TIMEOUT_SECONDS` | HTTP timeout in seconds; defaults to `20` |
+| `AUDIT_LOG_PATH` | Local audit-log path; defaults to `logs/audit.jsonl` |
+| `ENABLE_LIVE_RECOVERY` | Reserved safety setting; live recovery is not implemented |
+| `MAX_AUTOMATIC_RETRIES` | Reserved safety setting; automatic retries are not implemented |
+
+Keep credentials in your local `.env`; never commit them.
+
+## Use the dashboard
+
+1. Start the app with `streamlit run app.py`.
+2. Choose demo mode or configure the relevant live connection in `.env`.
+3. Review the run table and summary metrics.
+4. Select a run to see its diagnosis category, likely cause, and recommendation.
+5. Enter an operator name, mark whether you reviewed the diagnosis, and click **Record review** to append an audit event.
+
+A review event records the run identifier, pipeline/source, operator, review checkbox, diagnosis category, and the fact that no live recovery action was executed. The log path is controlled by `AUDIT_LOG_PATH`.
 
 ## Run tests
+
+From the repository root:
 
 ```powershell
 pytest -q
 ```
 
-## Security and safety
+These tests are intended to validate local logic and connector behavior. They do not verify access to your real Databricks workspace or Azure subscription; live integration should be tested separately with appropriately scoped credentials.
 
-- `.env`, credentials, and audit logs are excluded from Git.
-- Start with read-only monitoring and least-privilege permissions.
-- Diagnosis output is a recommendation, not proof of root cause.
-- No live pipeline restart or repair is performed by the current dashboard.
-- Review idempotency, access controls, approval flows, and audit retention before implementing recovery.
+## Current limitations and safety
+
+- The dashboard is **read-only for cloud systems**. It does not trigger job reruns, restart pipelines, or apply repairs.
+- Diagnosis is a best-effort recommendation based on available run/error metadata, not a confirmed root cause.
+- Databricks task-level error messages may be missing or incomplete depending on the API response and permissions.
+- Azure Data Factory monitoring is limited to recent pipeline-run metadata; detailed activity-run analysis is not yet implemented.
+- Cloud API support and authentication can differ by workspace, tenant, and edition.
+- `ENABLE_LIVE_RECOVERY` and `MAX_AUTOMATIC_RETRIES` are safety/configuration placeholders, not evidence that recovery is available.
+
+Use least-privilege credentials, keep secrets out of source control, and review audit-log retention before using the project with production data.
 
 ## Roadmap
 
-1. Validate Free Edition API access and pagination in your workspace.
-2. Add deeper run/task error retrieval and better root-cause evidence.
-3. Add Azure Data Factory activity-run details.
-4. Design approval-gated recovery with explicit retry budgets and idempotency safeguards.
-5. Add integration tests with mocked API responses and deployment documentation.
+1. Validate Databricks Free Edition API access and pagination against the target workspace.
+2. Improve retrieval of task-level and pipeline activity error details.
+3. Add mocked integration tests for success, authorization failures, timeouts, and malformed responses.
+4. Design approval-gated recovery with idempotency checks, retry limits, and a clear rollback strategy.
+5. Document deployment and production operations after cloud integrations have been validated.
 
 ## License
 
