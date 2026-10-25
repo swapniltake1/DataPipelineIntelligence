@@ -1,0 +1,47 @@
+[
+  {
+    "run_id": "adf-1001",
+    "pipeline": "customers_ingestion",
+    "status": "Failed",
+    "duration_minutes": 8,
+    "started_at": "2026-10-25T08:00:00Z",
+    "error": "Schema mismatch: column customer_segment has incompatible schema",
+    "retry_count": 0
+  },
+  {
+    "run_id": "adb-2002",
+    "pipeline": "transactions_silver",
+    "status": "Failed",
+    "duration_minutes": 19,
+    "started_at": "2026-10-25T08:15:00Z",
+    "error": "Quality check failed: null values found in transaction_id",
+    "retry_count": 0
+  },
+  {
+    "run_id": "adf-1003",
+    "pipeline": "accounts_incremental",
+    "status": "Failed",
+    "duration_minutes": 31,
+    "started_at": "2026-10-25T08:20:00Z",
+    "error": "Request timed out; upstream service temporarily unavailable",
+    "retry_count": 0
+  },
+  {
+    "run_id": "adb-2004",
+    "pipeline": "loans_gold",
+    "status": "Delayed",
+    "duration_minutes": 95,
+    "started_at": "2026-10-25T07:00:00Z",
+    "error": "",
+    "retry_count": 0
+  },
+  {
+    "run_id": "adf-1005",
+    "pipeline": "branches_ingestion",
+    "status": "Succeeded",
+    "duration_minutes": 4,
+    "started_at": "2026-10-25T08:30:00Z",
+    "error": "",
+    "retry_count": 0
+  }
+]
