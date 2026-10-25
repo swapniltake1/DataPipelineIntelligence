@@ -9,9 +9,9 @@ from src.azure_data_factory import AzureDataFactoryClient
 from src.agent import run_diagnosis
 from src.audit import record_event
 
-st.set_page_config(page_title="Self-Healing Pipeline Agent", layout="wide")
+st.set_page_config(page_title="DataPipelineIntelligence", layout="wide")
 cfg = get_settings()
-st.title("Self-Healing Data Pipeline Agent")
+st.title("DataPipelineIntelligence")
 st.caption("Read-only live monitoring plus diagnosis and audit.")
 if cfg.app_mode == "demo":
     runs = json.loads(Path("data/sample_runs.json").read_text(encoding="utf-8"))
